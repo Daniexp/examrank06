@@ -1,0 +1,13 @@
+APUNTES
+
+htons() host to network short Convierte un short int de formato de máquina al
+formato de red.
+htonl() host to network long Convierte un long int de formato de máquina al
+formato de red.
+ntohs() network to host short Convierte un short int de formato de red al formato de
+máquina.
+ntohl() network to host long Convierte un long int de formato de red al formato de
+máquina.
+
+Create a socket
+int socket(int domain, int type, int protocol);

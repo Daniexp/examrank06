@@ -5,6 +5,11 @@
 #include <string.h>
 #include <stdlib.h>
 
+void leaks(void)
+{
+	system("leaks -q a.out");
+}
+
 void printError(char *str)
 {
 	if (!str)
@@ -15,6 +20,7 @@ void printError(char *str)
 
 int main(int argc, char **argv)
 {
+	atexit(leaks);
 	if (argc != 2)
 	{
 		printError("Wrong number of arguments");

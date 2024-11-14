@@ -37,5 +37,24 @@ int main(int argc, char **argv)
 	if (0 > bind(fd_socket, (struct sockaddr *) &servaddr, sizeof(servaddr)))
 		printError(NULL);
 
+	//Preparar socket para recibir nuevas conexiones maximo 100 antes de entrar en espera
+	if (0 > listen(fd_socket, 100))
+		printError(NULL);
+
+	//Aceptamos la primera conexión de un cliente y creamos su respectivo socket ...
+	struct sockaddr_in cliaddr;
+	int lencli = sizeof(cliaddr);
+
+	int fd_client = accept(fd_socket, (struct sockaddr *) &cliaddr, &lencli);
+	if (0 > fd_client)
+		printError(NULL);
+
+	//Server espera bloqueante un mensaje del fd_client que le digamos en este caso el único cliente que se puede conectar
+	char buffer[10000];
+	int msg_len = recv(fd_client, &buffer, 10000, 0);
+
+	write(1, buffer, msg_len);
+
 	return (0);
 }
+

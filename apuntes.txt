@@ -1,5 +1,11 @@
 APUNTES
 
+//nc IP PORT
+nc localhost 8081
+
+//enviar mas de una linea con nc al server
+echo -e "Primera línea\nSegunda línea\nTercera línea" | nc localhost 8081
+
 htons() host to network short Convierte un short int de formato de máquina al
 formato de red.
 htonl() host to network long Convierte un long int de formato de máquina al
@@ -11,3 +17,24 @@ máquina.
 
 Create a socket
 int socket(int domain, int type, int protocol);
+
+
+//How works sockets server-client in C
+
+Cliente		Server
+		socket()
+		bind()
+		listen()
+		accept()
+socket()
+[bind()]			//optional
+
+connect()
+send()
+recv()
+		recv()
+		send()
+         close()
+//
+
+Clients bind is optional, but in the other hand the server needs to use bind in order to take a known port

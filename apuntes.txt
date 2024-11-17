@@ -38,3 +38,16 @@ recv()
 //
 
 Clients bind is optional, but in the other hand the server needs to use bind in order to take a known port
+
+
+//SELECT
+Crear structura de fd para el select
+
+fd_set read, write, list;
+
+select(numero max de fds + 1, dirccion set read, direccion set write, 0 , 0)
+       void FD_CLR(int fd, fd_set *set);
+       int  FD_ISSET(int fd, fd_set *set);
+       void FD_SET(int fd, fd_set *set);
+       void FD_ZERO(fd_set *set);
+

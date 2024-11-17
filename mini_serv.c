@@ -16,10 +16,12 @@ void printError(char *str)
 		str = "Fatal Error";
 	write(2, str, strlen(str));
 	write(2, "\n", 1);
+	exit(1);
 }
 
 int main(int argc, char **argv)
 {
+	int fds;
 	atexit(leaks);
 	if (argc != 2)
 	{
@@ -31,6 +33,11 @@ int main(int argc, char **argv)
 	if (fd_socket < 0)
 		printError(NULL);
 
+	fd_set setRead, setWrite, setStatus;
+	//Añadir fd al select
+	fds = fd_socket;
+	FD_ZERO(&setStatus);
+	FD_SET(fd_socket, &setStatus);
 	struct sockaddr_in servaddr;
 	bzero(&servaddr, sizeof(servaddr));
 
@@ -47,19 +54,48 @@ int main(int argc, char **argv)
 	if (0 > listen(fd_socket, 100))
 		printError(NULL);
 
-	//Aceptamos la primera conexión de un cliente y creamos su respectivo socket ...
+	//Preparar conexión de un único cliente
 	struct sockaddr_in cliaddr;
 	int lencli = sizeof(cliaddr);
-
-	int fd_client = accept(fd_socket, (struct sockaddr *) &cliaddr, &lencli);
-	if (0 > fd_client)
-		printError(NULL);
-
-	//Server espera bloqueante un mensaje del fd_client que le digamos en este caso el único cliente que se puede conectar
 	char buffer[10000];
-	int msg_len = recv(fd_client, &buffer, 10000, 0);
 
-	write(1, buffer, msg_len);
+	while (1)
+	{
+		setRead = setWrite = setStatus;	
+		if (0 > select(fds + 1, &setRead, &setWrite, 0, 0))
+			printError(NULL);
+		for (int id = 0; id <= fds; id++)
+		{
+			//Comprobar Si el fd esta en lectura o escritura
+			if (FD_ISSET(id, &setRead))
+			{
+				if (id == fd_socket)
+				{
+					//Aceptar conexión ya que le socket del serv solo escucha nuevas peticiones
+					//Aceptamos la primera conexión de un cliente y creamos su respectivo socket ...
+					int fd_client = accept(fd_socket, (struct sockaddr *) &cliaddr, &lencli);
+					if (0 > fd_client)
+						printError(NULL);
+					//Actualizar max fd con el nuevo creado (cuando se desconecten revisar si hay más que antes o no
+					fds = fd_client;
+					//Añadir nuevo fd al select
+					FD_SET(fd_client, &setStatus);
+					//Cambiar por mensaje a todos los clientes
+					write(1, "Conectado\n", 10);
+					break ;
+				}
+				else
+				{
+					//Algún cliente evento de lectura por parte del serv
+					//Server espera bloqueante un mensaje del fd_client que le digamos en este caso el único cliente que se puede conectar
+					int msg_len = recv(id, &buffer, 10000, 0);
+					//if msg_len < 0 handler client desconection
+					//Enviar mensaje en el buffer al resto de clientes conectados
+					write(1, buffer, msg_len);
+				}
+			}
+		}
+	}
 
 	return (0);
 }

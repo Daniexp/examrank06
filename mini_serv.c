@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define BUFFLEN 10000
+#define BUFFLEN 300000
 
 void leaks(void)
 {
@@ -97,16 +97,16 @@ int main(int argc, char **argv)
 					client[fd_client].id = clients++;
 					sprintf(buffer, "server: client %d just arrived\n", client[fd_client].id);
 					//Cambiar por mensaje a todos los clientes
-					write(1, "Conectado\n", 10);
+		//			write(1, "Conectado\n", 10);
 					for (int i = 0; i < fds; i++)
 					{
-						if (i != fd_client && FD_ISSET(i, &setWrite))
+						if (FD_ISSET(i, &setWrite) && (fd_client != i))
 						{
 							if (0 > send(i, buffer, strlen(buffer), 0))
 								printError(NULL);
 						}
 					}
-					break ;
+					bzero(buffer, strlen(buffer));
 				}
 				else
 				{
@@ -139,7 +139,8 @@ int main(int argc, char **argv)
 									printError(NULL);
 							}
 						}
-						write(1, buffer, msg_len);
+						bzero(buffer, strlen(buffer));
+		//				write(1, "mensaje enviado\n", 16);
 					}
 					else
 					{
@@ -152,11 +153,13 @@ int main(int argc, char **argv)
 									printError(NULL);
 							}
 						}
-						write(1, "Desconectado\n", 13);
+		//				write(1, "Desconectado\n", 13);
 						FD_CLR(id, &setStatus);
 						close(id);
+						bzero(buffer, strlen(buffer));
 					}
 				}
+			break;
 			}
 		}
 	}

@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 					sprintf(buffer, "server: client %d just arrived\n", client[fd_client].id);
 					//Cambiar por mensaje a todos los clientes
 		//			write(1, "Conectado\n", 10);
-					for (int i = 0; i < fds; i++)
+					for (int i = 0; i <= fds; i++)
 					{
 						if (FD_ISSET(i, &setWrite) && (fd_client != i))
 						{
@@ -131,7 +131,7 @@ int main(int argc, char **argv)
 							sprintf(client[id].msg, "client: %d: %s\n", clients[id].id,
 						} while (start < strlen(buffer));
 */
-						for (int i = 0; i < fds; i++)
+						for (int i = 0; i <= fds; i++)
 						{
 							if (i != id && FD_ISSET(i, &setWrite))
 							{
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
 					else
 					{
 						sprintf(buffer, "server: client %d just left\n", client[id].id);
-						for (int i = 0; i < fds; i++)
+						for (int i = 0; i <= fds; i++)
 						{
 							if (i != id && FD_ISSET(i, &setWrite))
 							{

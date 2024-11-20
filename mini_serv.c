@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <limits.h>
 
 #define BUFFLEN 300000
 
@@ -28,10 +29,23 @@ typedef struct s_client
 }	t_client;
 
 t_client client[1024];
+int fds, clients;
+fd_set setRead, setWrite, setStatus;
+char line[INT_MAX];
+
+void sendMsg(const int sender, const char *msg)
+{
+	for (int i = 0; i <= fds; i++)
+	{
+		if (i != sender && FD_ISSET(i, &setWrite))
+			if (0 > send(i, msg, strlen(msg), 0))
+				printError(NULL);
+	}
+}
+
 
 int main(int argc, char **argv)
 {
-	int fds, clients;
 	atexit(leaks);
 	if (argc != 2)
 	{
@@ -43,7 +57,6 @@ int main(int argc, char **argv)
 	if (fd_socket < 0)
 		printError(NULL);
 
-	fd_set setRead, setWrite, setStatus;
 	//Añadir fd al select
 	fds = fd_socket;
 	FD_ZERO(&setStatus);
@@ -61,12 +74,12 @@ int main(int argc, char **argv)
 		printError(NULL);
 
 	//Preparar socket para recibir nuevas conexiones maximo 100 antes de entrar en espera
-	if (0 > listen(fd_socket, 100))
+	if (0 > listen(fd_socket, INT_MAX))
 		printError(NULL);
 
 	//Preparar conexión de un único cliente
 	struct sockaddr_in cliaddr;
-	int lencli = sizeof(cliaddr);
+	unsigned int lencli = sizeof(cliaddr);
 	char buffer[BUFFLEN];
 	clients = 0;
 
@@ -98,14 +111,7 @@ int main(int argc, char **argv)
 					sprintf(buffer, "server: client %d just arrived\n", client[fd_client].id);
 					//Cambiar por mensaje a todos los clientes
 		//			write(1, "Conectado\n", 10);
-					for (int i = 0; i <= fds; i++)
-					{
-						if (FD_ISSET(i, &setWrite) && (fd_client != i))
-						{
-							if (0 > send(i, buffer, strlen(buffer), 0))
-								printError(NULL);
-						}
-					}
+					sendMsg(fd_client, buffer);
 					bzero(buffer, strlen(buffer));
 				}
 				else
@@ -117,42 +123,29 @@ int main(int argc, char **argv)
 					//Envia mensaje en el buffer al resto de clientes conectados
 					if (msg_len > 0)
 					{
-						//Recortar mensaje por líneas
-						//Añadir mensaje al principio dela línea y enviar
-//						repetir hasta que no queden líneas
-/*
-						int start, end;
-						start = end = 0;
-						do {
-							sprintf(buffer, "client: %d: ", clients[id].id);
-							while (client[id].msg[end] != '\n')
-								end++;
-							
-							sprintf(client[id].msg, "client: %d: %s\n", clients[id].id,
-						} while (start < strlen(buffer));
-*/
-						for (int i = 0; i <= fds; i++)
+						char *aux, *endLine;
+						aux = endLine = buffer;
+						do
 						{
-							if (i != id && FD_ISSET(i, &setWrite))
-							{
-								if (0 > send(i, buffer, strlen(buffer), 0))
-									printError(NULL);
-							}
-						}
-						bzero(buffer, strlen(buffer));
+							while (*endLine != '\n')
+								endLine++;
+							*endLine = '\0';
+							if (!strcpy(client[id].msg, aux))
+								printError(NULL);
+							sprintf(line, "client %d: %s\n", client[id].id, client[id].msg);
+							sendMsg(id, line);
+							aux = endLine++;
+							bzero(client[id].msg, strlen(client[id].msg));
+							bzero(line, strlen(line));
+						} while (endLine);
+//						sendMsg(id, buffer);
+//						bzero(buffer, strlen(buffer));
 		//				write(1, "mensaje enviado\n", 16);
 					}
 					else
 					{
 						sprintf(buffer, "server: client %d just left\n", client[id].id);
-						for (int i = 0; i <= fds; i++)
-						{
-							if (i != id && FD_ISSET(i, &setWrite))
-							{
-								if (0 > send(i, buffer, strlen(buffer), 0))
-									printError(NULL);
-							}
-						}
+						sendMsg(id, buffer);
 		//				write(1, "Desconectado\n", 13);
 						FD_CLR(id, &setStatus);
 						close(id);

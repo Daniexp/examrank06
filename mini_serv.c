@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <limits.h>
 
-#define BUFFLEN 300000
+#define BUFFLEN 1000
 
 void leaks(void)
 {
@@ -31,7 +31,8 @@ typedef struct s_client
 t_client client[1024];
 int fds, clients;
 fd_set setRead, setWrite, setStatus;
-char line[INT_MAX];
+char line[BUFFLEN + 100];
+char buffer[BUFFLEN];
 
 void sendMsg(const int sender, const char *msg)
 {
@@ -46,7 +47,7 @@ void sendMsg(const int sender, const char *msg)
 
 int main(int argc, char **argv)
 {
-	atexit(leaks);
+//	atexit(leaks);
 	if (argc != 2)
 	{
 		printError("Wrong number of arguments");
@@ -74,13 +75,12 @@ int main(int argc, char **argv)
 		printError(NULL);
 
 	//Preparar socket para recibir nuevas conexiones maximo 100 antes de entrar en espera
-	if (0 > listen(fd_socket, INT_MAX))
+	if (0 > listen(fd_socket, 100))
 		printError(NULL);
 
 	//Preparar conexión de un único cliente
 	struct sockaddr_in cliaddr;
 	unsigned int lencli = sizeof(cliaddr);
-	char buffer[BUFFLEN];
 	clients = 0;
 
 	while (1)
@@ -91,6 +91,9 @@ int main(int argc, char **argv)
 			//printError(NULL);
 		for (int id = 0; id <= fds; id++)
 		{
+			bzero(buffer, sizeof(buffer));
+			bzero(line, sizeof(line));
+			bzero(client[id].msg, sizeof(client[id].msg));
 			//Comprobar Si el fd esta en lectura o escritura
 			if (FD_ISSET(id, &setRead))
 			{
@@ -127,14 +130,21 @@ int main(int argc, char **argv)
 						aux = endLine = buffer;
 						do
 						{
-							while (*endLine != '\n')
+							while (endLine && *endLine != '\n')
 								endLine++;
-							*endLine = '\0';
-							if (!strcpy(client[id].msg, aux))
-								printError(NULL);
-							sprintf(line, "client %d: %s\n", client[id].id, client[id].msg);
+							if (endLine)
+							{
+								*endLine = '\0';
+								if (!strcpy(client[id].msg, aux))
+									printError(NULL);
+							}
+							if (client[id].msg)
+								sprintf(line, "client %d: %s\n", client[id].id, client[id].msg);
+							else
+								sprintf(line, "client %d: %s\n", client[id].id, aux);
 							sendMsg(id, line);
-							aux = endLine++;
+							if (((endLine - buffer) + 1) < msg_len)
+								aux = ++endLine;
 							bzero(client[id].msg, strlen(client[id].msg));
 							bzero(line, strlen(line));
 						} while (endLine);

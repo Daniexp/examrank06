@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <limits.h>
 
-#define BUFFLEN 1000
 
 void leaks(void)
 {
@@ -48,8 +47,6 @@ void sendMsg(const int sender, const char *msg)
 int main(int argc, char **argv)
 {
 //	atexit(leaks);
-	buffer = malloc(BUFFLEN + 1);
-	line = malloc(BUFFLEN + 100 + 1);
 	if (argc != 2)
 	{
 		printError("Wrong number of arguments");
@@ -57,11 +54,9 @@ int main(int argc, char **argv)
 	}
 	//Abrir socket protocolo itcp4
 	int fd_socket = socket(AF_INET, SOCK_STREAM, 0);
-	if (fd_socket < 0 || !buffer || !line)
+	if (fd_socket < 0)
 		printError(NULL);
 
-	buffer[BUFFLEN] = '\0';
-	line[BUFFLEN + 100] = '\0';
 	//Añadir fd al select
 	fds = fd_socket;
 	FD_ZERO(&setStatus);
@@ -87,8 +82,6 @@ int main(int argc, char **argv)
 	unsigned int lencli = sizeof(cliaddr);
 	clients = 0;
 	char *msg;
-	int fd_client;
-	char *aux, *endLine;
 
 	while (1)
 	{
@@ -108,7 +101,7 @@ int main(int argc, char **argv)
 				{
 					//Aceptar conexión ya que le socket del serv solo escucha nuevas peticiones
 					//Aceptamos la primera conexión de un cliente y creamos su respectivo socket ...
-					fd_client = accept(fd_socket, (struct sockaddr *) &cliaddr, &lencli);
+					int fd_client = accept(fd_socket, (struct sockaddr *) &cliaddr, &lencli);
 					if (0 > fd_client)
 						continue ;
 					//	printError(NULL);
@@ -133,6 +126,7 @@ int main(int argc, char **argv)
 					//Envia mensaje en el buffer al resto de clientes conectados
 					if (msg_len > 0)
 					{
+						char *aux, *endLine;
 						aux = endLine = buffer;
 						do
 						{
@@ -141,10 +135,9 @@ int main(int argc, char **argv)
 							if (endLine)
 							{
 								*endLine = '\0';
-								msg = malloc(strlen(aux) + 1);
+								msg = malloc(strlen(aux));
 							if (!msg || !strcpy(msg, aux))
 									printError(NULL);
-							msg[strlen(aux)] = '\0';
 							}
 							if (msg)
 								sprintf(line, "client %d: %s\n", client[id].id, msg);

@@ -31,7 +31,7 @@ void sendMsg(const int sender, const char *msg)
 	for (int i = 0; i <= fds; i++)
 	{
 		if (i != sender && FD_ISSET(i, &setWrite))
-			if (0 > send(i, msg, strlen(msg), 0))
+			if (0 > send(i, msg, strlen(msg), MSG_DONTWAIT))
 				printError(NULL);
 	}
 }
@@ -106,6 +106,7 @@ int main(int argc, char **argv)
 					int msg_len = recv(id, &buffer, BUFFLEN, 0);
 					if (msg_len > 0)
 					{
+						//Seguir leyendo hasta tener el mensaje completo
 						int j = 0;
 						for (int i = 0; j < msg_len - 1; i = ++j)
 						{

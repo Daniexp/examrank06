@@ -6,8 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
-
-#define BUFFLEN 1000
+#define BUFFLEN 100
 
 void leaks(void)
 {
@@ -22,17 +21,10 @@ void printError(char *str)
 	write(2, "\n", 1);
 	exit(1);
 }
-typedef struct s_client
-{
-	int	id;
-}	t_client;
 
-t_client client[1024];
+int client[1027];
 int fds, clients;
 fd_set setRead, setWrite, setStatus;
-//char line[BUFFLEN + 100];
-//char buffer[BUFFLEN];
-char *line, *buffer;
 
 void sendMsg(const int sender, const char *msg)
 {
@@ -48,8 +40,6 @@ void sendMsg(const int sender, const char *msg)
 int main(int argc, char **argv)
 {
 //	atexit(leaks);
-	buffer = malloc(BUFFLEN + 1);
-	line = malloc(BUFFLEN + 100 + 1);
 	if (argc != 2)
 	{
 		printError("Wrong number of arguments");
@@ -57,11 +47,9 @@ int main(int argc, char **argv)
 	}
 	//Abrir socket protocolo itcp4
 	int fd_socket = socket(AF_INET, SOCK_STREAM, 0);
-	if (fd_socket < 0 || !buffer || !line)
+	if (fd_socket < 0)
 		printError(NULL);
 
-	buffer[BUFFLEN] = '\0';
-	line[BUFFLEN + 100] = '\0';
 	//Añadir fd al select
 	fds = fd_socket;
 	FD_ZERO(&setStatus);
@@ -79,16 +67,13 @@ int main(int argc, char **argv)
 		printError(NULL);
 
 	//Preparar socket para recibir nuevas conexiones maximo 100 antes de entrar en espera
-	if (0 > listen(fd_socket, 100))
+	if (0 > listen(fd_socket, 10))
 		printError(NULL);
 
 	//Preparar conexión de un único cliente
 	struct sockaddr_in cliaddr;
 	unsigned int lencli = sizeof(cliaddr);
 	clients = 0;
-	char *msg;
-	int fd_client;
-	char *aux, *endLine;
 
 	while (1)
 	{
@@ -96,87 +81,58 @@ int main(int argc, char **argv)
 		if (0 > select(fds + 1, &setRead, &setWrite, 0, 0))
 			continue ;
 			//printError(NULL);
-		for (int id = 0; id <= fds; id++)
+		for (int id = 2; id <= fds; id++)
 		{
+			char buffer[BUFFLEN];
 			bzero(buffer, sizeof(buffer));
-			bzero(line, sizeof(line));
-		//	bzero(client[id].msg, sizeof(client[id].msg));
-			//Comprobar Si el fd esta en lectura o escritura
 			if (FD_ISSET(id, &setRead))
 			{
 				if (id == fd_socket)
 				{
-					//Aceptar conexión ya que le socket del serv solo escucha nuevas peticiones
-					//Aceptamos la primera conexión de un cliente y creamos su respectivo socket ...
-					fd_client = accept(fd_socket, (struct sockaddr *) &cliaddr, &lencli);
+					int fd_client = accept(fd_socket, (struct sockaddr *) &cliaddr, &lencli);
 					if (0 > fd_client)
 						continue ;
-					//	printError(NULL);
-					//Actualizar max fd con el nuevo creado (cuando se desconecten revisar si hay más que antes o no
+					//	break;
 					if (fds < fd_client)
 						fds = fd_client;
-					//Añadir nuevo fd al select
 					FD_SET(fd_client, &setStatus);
-					client[fd_client].id = clients++;
-					sprintf(buffer, "server: client %d just arrived\n", client[fd_client].id);
-					//Cambiar por mensaje a todos los clientes
-		//			write(1, "Conectado\n", 10);
+					client[fd_client] = clients++;
+					sprintf(buffer, "server: client %d just arrived\n", client[fd_client]);
 					sendMsg(fd_client, buffer);
 					bzero(buffer, strlen(buffer));
 				}
 				else
 				{
-					//Algún cliente evento de lectura por parte del serv
-					//Server espera bloqueante un mensaje del fd_client que le digamos en este caso el único cliente que se puede conectar
 					int msg_len = recv(id, &buffer, BUFFLEN, 0);
-					//if msg_len < 0 handler client desconection
-					//Envia mensaje en el buffer al resto de clientes conectados
 					if (msg_len > 0)
 					{
-						aux = endLine = buffer;
-						do
+						int j = 0;
+						for (int i = 0; j < msg_len - 1; i = ++j)
 						{
-							while (endLine && *endLine != '\n')
-								endLine++;
-							if (endLine)
-							{
-								*endLine = '\0';
-								msg = malloc(strlen(aux) + 1);
-							if (!msg || !strcpy(msg, aux))
-									printError(NULL);
-							msg[strlen(aux)] = '\0';
-							}
-							if (msg)
-								sprintf(line, "client %d: %s\n", client[id].id, msg);
-							else if (*aux)
-								sprintf(line, "client %d: %s\n", client[id].id, aux);
-							sendMsg(id, line);
-							if (msg_len - 1 > endLine - buffer)
-								aux = ++endLine;
-							free(msg);
-							bzero(line, strlen(line));
-						} while (endLine);
-						printf("Llego a salir del bucle do while\n");
-//						sendMsg(id, buffer);
-//						bzero(buffer, strlen(buffer));
-		//				write(1, "mensaje enviado\n", 16);
+							while (buffer[j] && buffer[j] != '\n')
+								j++;
+							if (buffer[j])
+								buffer[j] = '\0';
+							char msg[200];
+							sprintf(msg, "client %d: %s\n", client[id], &(buffer[i]));
+							sendMsg(id, msg);
+							bzero(buffer, strlen(buffer));
+							bzero(msg, strlen(msg));
+						}
 					}
 					else
 					{
-						sprintf(buffer, "server: client %d just left\n", client[id].id);
+						sprintf(buffer, "server: client %d just left\n", client[id]);
 						sendMsg(id, buffer);
-		//				write(1, "Desconectado\n", 13);
 						FD_CLR(id, &setStatus);
 						close(id);
 						bzero(buffer, strlen(buffer));
 					}
 				}
-			break;
+				break;
 			}
 		}
 	}
-	free(line);
-	free(buffer);
 
 	return (0);
 }

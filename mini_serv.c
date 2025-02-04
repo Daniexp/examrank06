@@ -78,7 +78,8 @@ void	sendMessage(const int max, fd_set writefd, const int sender, char *msg)
 }
 
 int main(int argc, char **argv) {
-	int sockfd, connfd, len;
+	int sockfd, connfd;
+	unsigned int len;
 	struct sockaddr_in servaddr, cli; 
 	fd_set allfd, readfd, writefd;
 	int maxFd, maxClient;
@@ -102,15 +103,17 @@ int main(int argc, char **argv) {
 	servaddr.sin_port = htons(atoi(argv[1])); 
   
 	// Binding newly created socket to given IP and verification 
-	if (((bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr))) != 0) || (listen(sockfd, 10) != 0))
+	if (((bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr))) > 0) || 0 > listen(sockfd, 10))
 		error(NULL);
 	len = sizeof(cli);
-
+	printf("Sockfd: %d\n", sockfd);
 	while (1)
 	{
+		printf("pillado en el select\n");
 		readfd = writefd = allfd;
-		if (0 > select(maxFd + 1, &readfd, &writefd, 0, 0));
+		if (0 > select(maxFd + 1, &readfd, &writefd, 0, 0))
 			continue ;
+		printf("nunca pasa el select ....kk?????\n");
 		for (int i = 3; i <= maxFd; i++)
 		{
 			// VER si esta en lectura
@@ -120,9 +123,11 @@ int main(int argc, char **argv) {
 				if (i == sockfd)
 				{
 					//Si es socket aceptar cliente
+					printf("Andtes del accept\n");
 					connfd = accept(sockfd, (struct sockaddr *)&cli, &len);
 					if (0 > connfd)
-						continue ; 
+						continue ;
+					printf("Pasa el accept\n");
 					FD_SET(connfd, &allfd);
 					if (maxFd < connfd)
 						maxFd = connfd;
@@ -131,13 +136,13 @@ int main(int argc, char **argv) {
 					char msg[1000];
 					sprintf(msg, "server: client %d just arrived\n", clients[connfd].id);
 					sendMessage(maxFd, writefd, connfd, msg);
-					printf("entra aquí\n");
 				}
 				else
 				{
 					//Si no es socket leer mensaje enviado por cliente
 						//si recv falla gestionar desconexion de cliente
 						//si recv no falla unir con leido previo y sacar solo primera linea resto guardar para futuros recv
+					printf("else, esta en read pero no es mi socket");
 				}
 			}
 			//Escritura: entonces volver a revisar fds y sus estados (acabar buble for y continuear en while)

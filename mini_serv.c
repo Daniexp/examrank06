@@ -106,14 +106,13 @@ int main(int argc, char **argv) {
 	if (((bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr))) < 0) || 0 > listen(sockfd, 10))
 		error(NULL);
 	len = sizeof(cli);
-	printf("Sockfd: %d\n", sockfd);
+	char msg[1000];
 	while (1)
 	{
-		printf("pillado en el select\n");
+		bzero(msg, strlen(msg));
 		readfd = writefd = allfd;
 		if (0 > select(maxFd + 1, &readfd, &writefd, 0, 0))
 			continue ;
-		printf("nunca pasa el select ....kk?????\n");
 		for (int i = 3; i <= maxFd; i++)
 		{
 			// VER si esta en lectura
@@ -123,17 +122,14 @@ int main(int argc, char **argv) {
 				if (i == sockfd)
 				{
 					//Si es socket aceptar cliente
-					printf("Andtes del accept\n");
 					connfd = accept(sockfd, (struct sockaddr *)&cli, &len);
 					if (0 > connfd)
 						continue ;
-					printf("Pasa el accept\n");
 					FD_SET(connfd, &allfd);
 					if (maxFd < connfd)
 						maxFd = connfd;
 					//Nueva structura para el cliente
 					clients[connfd].id = maxClient++;	
-					char msg[1000];
 					sprintf(msg, "server: client %d just arrived\n", clients[connfd].id);
 					sendMessage(maxFd, writefd, connfd, msg);
 				}

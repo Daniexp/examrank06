@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 int extract_message(char **buf, char **msg)
 {
@@ -63,15 +64,26 @@ void error(char *msg)
 }
 
 typedef struct  s_client{
-	char	*msg;
-	int	id;
+	char		*msg;
+	int		id;
 } t_client;
+
+void	sendMessage(const int max, fd_set writefd, const int sender, char *msg)
+{
+	for (int i = 3; i <= max; i++)
+	{
+		if (i != sender && FD_ISSET(i, &writefd))
+			send(i, msg, strlen(msg), 0);
+	}
+}
 
 int main(int argc, char **argv) {
 	int sockfd, connfd, len;
 	struct sockaddr_in servaddr, cli; 
 	fd_set allfd, readfd, writefd;
 	int maxFd, maxClient;
+	t_client clients[1027];
+	maxClient = 0;
 
 	if (argc <= 1)
 		error("Wrong number of arguments");
@@ -102,12 +114,34 @@ int main(int argc, char **argv) {
 		for (int i = 3; i <= maxFd; i++)
 		{
 			// VER si esta en lectura
+			if (FD_ISSET(i, &readfd))
+			{
 				//Lectura : ver si es socket
+				if (i == sockfd)
+				{
 					//Si es socket aceptar cliente
+					connfd = accept(sockfd, (struct sockaddr *)&cli, &len);
+					if (0 > connfd)
+						continue ; 
+					FD_SET(connfd, &allfd);
+					if (maxFd < connfd)
+						maxFd = connfd;
+					//Nueva structura para el cliente
+					clients[connfd].id = maxClient++;	
+					char msg[1000];
+					sprintf(msg, "server: client %d just arrived\n", clients[connfd].id);
+					sendMessage(maxFd, writefd, connfd, msg);
+					printf("entra aquí\n");
+				}
+				else
+				{
 					//Si no es socket leer mensaje enviado por cliente
 						//si recv falla gestionar desconexion de cliente
 						//si recv no falla unir con leido previo y sacar solo primera linea resto guardar para futuros recv
-				//Escritura: entonces volver a revisar fds y sus estados (acabar buble for y continuear en while)
+				}
+			}
+			//Escritura: entonces volver a revisar fds y sus estados (acabar buble for y continuear en while)
+			break;
 					
 		}
 	}

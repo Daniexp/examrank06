@@ -107,9 +107,11 @@ int main(int argc, char **argv) {
 		error(NULL);
 	len = sizeof(cli);
 	char msg[1000];
+	char buffer[1000];
 	while (1)
 	{
 		bzero(msg, strlen(msg));
+		bzero(buffer, strlen(buffer));
 		readfd = writefd = allfd;
 		if (0 > select(maxFd + 1, &readfd, &writefd, 0, 0))
 			continue ;
@@ -128,17 +130,30 @@ int main(int argc, char **argv) {
 					FD_SET(connfd, &allfd);
 					if (maxFd < connfd)
 						maxFd = connfd;
-					//Nueva structura para el cliente
 					clients[connfd].id = maxClient++;	
 					sprintf(msg, "server: client %d just arrived\n", clients[connfd].id);
 					sendMessage(maxFd, writefd, connfd, msg);
 				}
 				else
 				{
-					//Si no es socket leer mensaje enviado por cliente
-						//si recv falla gestionar desconexion de cliente
-						//si recv no falla unir con leido previo y sacar solo primera linea resto guardar para futuros recv
-					printf("else, esta en read pero no es mi socket");
+					printf("Entra elseahahahahahahah\n");
+					if (0 >= recv(i, buffer, 1000, 0))
+					{
+					//si recv falla o cliente desconecta  gestionar desconexion de cliente
+						sprintf(msg, "server: client %d just left\n", clients[i].id);
+						sendMessage(maxFd, writefd, i, msg);
+						FD_CLR(i, &allfd);
+						if(clients[i].msg)
+							free(clients[i].msg);	
+						clients[i].msg = NULL;
+						clients[i].id = -1;
+						close(i);
+					}
+					else
+					{
+						printf("In progress read message, concat with old and print only first line\n");
+					//si recv no falla unir con leido previo y sacar solo primera linea resto guardar para futuros recv
+					}
 				}
 			}
 			//Escritura: entonces volver a revisar fds y sus estados (acabar buble for y continuear en while)

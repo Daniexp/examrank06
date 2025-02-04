@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
 	servaddr.sin_port = htons(atoi(argv[1])); 
   
 	// Binding newly created socket to given IP and verification 
-	if (((bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr))) > 0) || 0 > listen(sockfd, 10))
+	if (((bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr))) < 0) || 0 > listen(sockfd, 10))
 		error(NULL);
 	len = sizeof(cli);
 	printf("Sockfd: %d\n", sockfd);

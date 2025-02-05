@@ -115,7 +115,7 @@ int main(int argc, char **argv) {
 		readfd = writefd = allfd;
 		if (0 > select(maxFd + 1, &readfd, &writefd, 0, 0))
 			continue ;
-		for (int i = 3; i <= maxFd; i++)
+		for (int i = 0; i <= maxFd; i++)
 		{
 			// VER si esta en lectura
 			if (FD_ISSET(i, &readfd))

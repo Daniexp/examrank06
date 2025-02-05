@@ -9,8 +9,10 @@
 
 fd_set allfd, readfd, writefd;
 int id[1027];
-char* msg[1027];
+char msg[1027][2001];
 int fds, clientId; 
+char clientMsg[3001];
+char endMsg[5001];
 
 int extract_message(char **buf, char **msg)
 {
@@ -78,6 +80,16 @@ int sendToAll(const int sender, char *msg)
 	}
 	return res;
 }
+int search(char chr, char *str, int len)
+{
+	int	res = -1;
+	int i = 0; 
+	while (i < len && str[i] != chr)
+		i++;
+	if (i < len)
+		res = i;
+	return res;
+}
 
 int main(int argc, char **argv) {
 	if (argc < 2)
@@ -108,10 +120,11 @@ int main(int argc, char **argv) {
 	if (listen(sockfd, 100) != 0)
 		error(NULL);
 	char buf[1001];
-	char endMsg[2001];
 	while (1)
 	{
 		bzero(buf, 1001);
+		bzero(endMsg, 5001);
+		bzero(clientMsg, 3001);
 		readfd = writefd = allfd;
 		if (select(fds + 1, &readfd, &writefd, 0, 0) == -1)
 			continue ;
@@ -144,16 +157,29 @@ int main(int argc, char **argv) {
 					sprintf(buf, "server: client %d just left\n", id[i]);
 					sendToAll(i, buf);
 					id[i] = -1;
-					if (msg[i])
-						free(msg[i]);
-					msg[i] = NULL;
+					bzero(msg[i], 2001);
 				}
 				else
 				{
 					printf("We receive something: %d\n", len);
-					printf("buf: %s", buf);
-					
 					buf[len] = '\0';
+					//Buscar \n
+					strcpy(clientMsg, msg[i]);
+					strcat(clientMsg, buf);
+					int newLine = search('\n', clientMsg, strlen(clientMsg));
+/*
+					while (newLine >= 0)
+					{
+						//Recortar \n, enviar mensaje a clientes
+						//volver a buscar \n en el resto
+						newLine = search('\n', clientMsg, strlen(clientMsg));
+					}
+*/
+					strcpy(msg[i], clientMsg);
+					bzero(clientMsg, strlen(clientMsg));
+					bzero(endMsg, strlen(endMsg));
+					printf("buf: %s", buf);
+				/*	
 					msg[i] = str_join(msg[i], buf);
 					char *message;
 					while (extract_message(&msg[i], &message))
@@ -162,6 +188,7 @@ int main(int argc, char **argv) {
 						sendToAll(i, endMsg);
 						free(message);
 					}
+*/
 				}
 				//Client send message or disconnect from the server
 			}

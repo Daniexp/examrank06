@@ -2,6 +2,7 @@ APUNTES
 
 //nc IP PORT
 nc localhost 8081
+(printf "mensaje\nmesnaej2\ndfjksf"; cat) | nc -q 10 localhost 8080
 
 //enviar mas de una linea con nc al server
 echo -e "Primera línea\nSegunda línea\nTercera línea" | nc localhost 8081

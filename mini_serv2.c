@@ -136,7 +136,8 @@ int main(int argc, char **argv) {
 			{
 				connfd = accept(sockfd, (struct sockaddr *)&cli, &len);
 				if (connfd == -1)
-					error(NULL); 
+					continue ;
+				//	error(NULL); 
 				if (fds < connfd)
 					fds = connfd;
 				//New client
@@ -149,7 +150,8 @@ int main(int argc, char **argv) {
 			}
 			else
 			{
-				int len = recv(i, buf, 1000, 0);
+				//Client send message or disconnect from the server
+				int len = recv(i, buf, 100, 0);
 				if (len <= 0)
 				{
 					printf("New Disconnection from server\n");
@@ -166,32 +168,33 @@ int main(int argc, char **argv) {
 					//Buscar \n
 					strcpy(clientMsg, msg[i]);
 					strcat(clientMsg, buf);
-					int newLine = search('\n', clientMsg, strlen(clientMsg));
-/*
-					while (newLine >= 0)
+					printf("buf: %s", buf);
+					printf("clientMsg with all: %s", clientMsg);
+
+					int msg_len = strlen(clientMsg);
+					int j = 0;
+					for (int k = 0; j < msg_len - 1; k = ++j)
 					{
-						//Recortar \n, enviar mensaje a clientes
-						//volver a buscar \n en el resto
-						newLine = search('\n', clientMsg, strlen(clientMsg));
+						while (clientMsg[j] && clientMsg[j] != '\n')
+							j++;
+						if (clientMsg[j])
+						{
+							clientMsg[j] = '\0';
+							bzero(endMsg, strlen(endMsg));
+							sprintf(endMsg, "client %d: %s\n", id[i], &(clientMsg[k]));
+							sendToAll(i, endMsg);
+						}
+						else
+						{
+							bzero(msg[i], strlen(msg[i]));
+							strcpy(msg[i], &(clientMsg[k]));
+						}
 					}
-*/
-					strcpy(msg[i], clientMsg);
 					bzero(clientMsg, strlen(clientMsg));
 					bzero(endMsg, strlen(endMsg));
-					printf("buf: %s", buf);
-				/*	
-					msg[i] = str_join(msg[i], buf);
-					char *message;
-					while (extract_message(&msg[i], &message))
-					{
-						sprintf(endMsg, "client %d: %s", id[i], message);
-						sendToAll(i, endMsg);
-						free(message);
-					}
-*/
 				}
-				//Client send message or disconnect from the server
 			}
+			break ;
 		}
 	}
 }
